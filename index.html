@@ -29,72 +29,72 @@
 
     <div id="output" class="result" style="display:none;"></div>
   </div>
+<script>
+  const API_BASE = "https://ai-question-backend.onrender.com"; // Base URL of your Render backend
 
-  <script>
-    const API_BASE = "https://ai-question-backend.onrender.com/generate"; // <-- Replace with your live Render backend URL
-    const input = document.getElementById("inputText");
-    const btn = document.getElementById("generateBtn");
-    const output = document.getElementById("output");
-    const wordCount = document.getElementById("wordCount");
+  const input = document.getElementById("inputText");
+  const btn = document.getElementById("generateBtn");
+  const output = document.getElementById("output");
+  const wordCount = document.getElementById("wordCount");
 
-    function countWords(s) {
-      if (!s.trim()) return 0;
-      return s.trim().split(/\s+/).length;
-    }
+  function countWords(s) {
+    if (!s.trim()) return 0;
+    return s.trim().split(/\s+/).length;
+  }
 
-    input.addEventListener("input", () => {
-      const wc = countWords(input.value);
-      wordCount.textContent = `Words: ${wc} / 40`;
-      wordCount.style.color = wc > 40 ? "red" : "";
-      btn.disabled = wc > 40;
-    });
+  input.addEventListener("input", () => {
+    const wc = countWords(input.value);
+    wordCount.textContent = `Words: ${wc} / 40`;
+    wordCount.style.color = wc > 40 ? "red" : "";
+    btn.disabled = wc > 40;
+  });
 
-    btn.addEventListener("click", async () => {
-      const text = input.value.trim();
-      if (!text || countWords(text) === 0) return alert("Please write a short summary (max 40 words).");
-      if (countWords(text) > 40) return alert("Please keep it within 40 words.");
+  btn.addEventListener("click", async () => {
+    const text = input.value.trim();
+    if (!text || countWords(text) === 0) return alert("Please write a short summary (max 40 words).");
+    if (countWords(text) > 40) return alert("Please keep it within 40 words.");
 
-      btn.disabled = true;
-      btn.textContent = "Generating...";
-      output.style.display = "block";
-      output.innerHTML = "<div class='small'>Generating questions — please wait...</div>";
+    btn.disabled = true;
+    btn.textContent = "Generating...";
+    output.style.display = "block";
+    output.innerHTML = "<div class='small'>Generating questions — please wait...</div>";
 
-      try {
-        const resp = await fetch(API_BASE + "/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text })
+    try {
+      const resp = await fetch(`${API_BASE}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        output.innerHTML = `<div class="small">Error: ${data.error || JSON.stringify(data)}</div>`;
+      } else {
+        const analysis = data.analysis || {};
+        const qs = data.questions || [];
+        let html = "<strong>Analysis:</strong><ul>";
+        html += `<li><strong>Missing:</strong> ${(analysis.missing||[]).join(", ") || "None"}</li>`;
+        html += `<li><strong>Unnecessary:</strong> ${(analysis.unnecessary||[]).join(", ") || "None"}</li>`;
+        html += `<li><strong>Core points:</strong> ${(analysis.core_points||[]).join(", ") || "None"}</li>`;
+        html += "</ul><hr><strong>Practice Questions (3)</strong>";
+        qs.forEach(q => {
+          html += `<div class="question"><div><strong>Q${q.q_no}.</strong> ${q.question}</div>`;
+          html += `<div class="small"><em>Hint:</em> ${q.hint}</div>`;
+          html += `<div><strong>Guidance:</strong><ul>`;
+          (q.guidance||[]).forEach(g => html += `<li>${g}</li>`);
+          html += "</ul></div>";
+          html += `<div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
         });
-
-        const data = await resp.json();
-
-        if (!resp.ok) {
-          output.innerHTML = `<div class="small">Error: ${data.error || JSON.stringify(data)}</div>`;
-        } else {
-          const analysis = data.analysis || {};
-          const qs = data.questions || [];
-          let html = "<strong>Analysis:</strong><ul>";
-          html += `<li><strong>Missing:</strong> ${(analysis.missing||[]).join(", ") || "None"}</li>`;
-          html += `<li><strong>Unnecessary:</strong> ${(analysis.unnecessary||[]).join(", ") || "None"}</li>`;
-          html += `<li><strong>Core points:</strong> ${(analysis.core_points||[]).join(", ") || "None"}</li>`;
-          html += "</ul><hr><strong>Practice Questions (3)</strong>";
-          qs.forEach(q => {
-            html += `<div class="question"><div><strong>Q${q.q_no}.</strong> ${q.question}</div>`;
-            html += `<div class="small"><em>Hint:</em> ${q.hint}</div>`;
-            html += `<div><strong>Guidance:</strong><ul>`;
-            (q.guidance||[]).forEach(g => html += `<li>${g}</li>`);
-            html += "</ul></div>";
-            html += `<div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
-          });
-          output.innerHTML = html;
-        }
-      } catch (err) {
-        output.innerHTML = `<div class="small">Network or server error: ${err}</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "OK — Create 3 Questions";
+        output.innerHTML = html;
       }
-    });
-  </script>
+    } catch (err) {
+      output.innerHTML = `<div class="small">Network or server error: ${err}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "OK — Create 3 Questions";
+    }
+  });
+</script>
 </body>
 </html>
