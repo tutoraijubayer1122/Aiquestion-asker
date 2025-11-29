@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -10,7 +9,7 @@
     .card { max-width:760px; margin: 24px auto; background:white; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(12,30,60,0.06); }
     textarea { width:100%; height:90px; border-radius:8px; border:1px solid #e2e8f0; padding:10px; font-size:15px; resize:none; }
     .row { display:flex; gap:8px; align-items:center; margin-top:10px; }
-    button { padding:10px 14px; border-radius:8px; border:none; background:#0b67ff; color:white; font-weight:600; }
+    button { padding:10px 14px; border-radius:8px; border:none; background:#0b67ff; color:white; font-weight:600; cursor:pointer; }
     .hint { font-size:13px; color:#6b7280; }
     .result { margin-top:14px; background:#f1f5f9; padding:12px; border-radius:8px; }
     .question { margin-bottom:12px; padding:10px; background:white; border-radius:8px; border:1px solid #eef2ff; }
@@ -32,7 +31,7 @@
   </div>
 
   <script>
-    const API_BASE = "https://YOUR_BACKEND_URL_HERE"; // << Set this to your backend e.g., https://abcd.ngrok.io
+    const API_BASE = "https://ai-question-backend.onrender.com"; // <-- Replace with your live Render backend URL
     const input = document.getElementById("inputText");
     const btn = document.getElementById("generateBtn");
     const output = document.getElementById("output");
@@ -46,26 +45,14 @@
     input.addEventListener("input", () => {
       const wc = countWords(input.value);
       wordCount.textContent = `Words: ${wc} / 40`;
-      if (wc > 40) {
-        wordCount.style.color = "red";
-        btn.disabled = true;
-      } else {
-        wordCount.style.color = "";
-        btn.disabled = false;
-      }
+      wordCount.style.color = wc > 40 ? "red" : "";
+      btn.disabled = wc > 40;
     });
 
     btn.addEventListener("click", async () => {
       const text = input.value.trim();
-      const wc = countWords(text);
-      if (!text || wc === 0) {
-        alert("Please write a short summary (max 40 words).");
-        return;
-      }
-      if (wc > 40) {
-        alert("Please keep it within 40 words.");
-        return;
-      }
+      if (!text || countWords(text) === 0) return alert("Please write a short summary (max 40 words).");
+      if (countWords(text) > 40) return alert("Please keep it within 40 words.");
 
       btn.disabled = true;
       btn.textContent = "Generating...";
@@ -78,35 +65,27 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text })
         });
+
         const data = await resp.json();
+
         if (!resp.ok) {
           output.innerHTML = `<div class="small">Error: ${data.error || JSON.stringify(data)}</div>`;
-        } else if (data.raw && data.warning) {
-          output.innerHTML = `<div class="small">Warning: could not parse JSON from model. Raw output returned below.</div><pre>${data.raw}</pre>`;
         } else {
-          // Render analysis
           const analysis = data.analysis || {};
           const qs = data.questions || [];
           let html = "<strong>Analysis:</strong><ul>";
           html += `<li><strong>Missing:</strong> ${(analysis.missing||[]).join(", ") || "None"}</li>`;
           html += `<li><strong>Unnecessary:</strong> ${(analysis.unnecessary||[]).join(", ") || "None"}</li>`;
           html += `<li><strong>Core points:</strong> ${(analysis.core_points||[]).join(", ") || "None"}</li>`;
-          html += "</ul><hr>";
-          html += "<strong>Practice Questions (3)</strong>";
+          html += "</ul><hr><strong>Practice Questions (3)</strong>";
           qs.forEach(q => {
             html += `<div class="question"><div><strong>Q${q.q_no}.</strong> ${q.question}</div>`;
             html += `<div class="small"><em>Hint:</em> ${q.hint}</div>`;
             html += `<div><strong>Guidance:</strong><ul>`;
             (q.guidance||[]).forEach(g => html += `<li>${g}</li>`);
-            html += `</ul></div><div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
+            html += "</ul></div>";
+            html += `<div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
           });
-          // include meta similarity if present
-          if (data._meta) {
-            html += `<div class="small">Similarity scores to previous patterns: ${ (data._meta.similarity_scores || []).map(s=> (s*100).toFixed(0)+'%').join(", ") }</div>`;
-            if (data._meta.max_similarity < 0.2) {
-              html += `<div class="small" style="color:darkorange">Note: Generated items are not closely aligned to previous patterns (low similarity). Consider re-submitting with an explicit mention of pattern type (e.g., 'board exam style' or 'admission test style').</div>`;
-            }
-          }
           output.innerHTML = html;
         }
       } catch (err) {
@@ -117,27 +96,5 @@
       }
     });
   </script>
-  <script>
-async function generateQuestions() {
-  const topic = document.getElementById('topic').value;
-  const response = await fetch('https://ai-question-backend.onrender.com/generate', {   // <-- Replace with your Render URL
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: topic })
-  });
-  const data = await response.json();
-  const list = document.getElementById('questions');
-  list.innerHTML = '';
-  if(data.questions){
-    data.questions.forEach(q => {
-      const li = document.createElement('li');
-      li.textContent = q.question + " (Hint: " + q.hint + ")";
-      list.appendChild(li);
-    });
-  } else if(data.error){
-    list.innerHTML = `<li>${data.error}</li>`;
-  }
-}
-</script>
 </body>
 </html>
