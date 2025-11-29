@@ -1,0 +1,121 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Practice Question Generator</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:18px; background:#f8f9fb; color:#111; }
+    .card { max-width:760px; margin: 24px auto; background:white; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(12,30,60,0.06); }
+    textarea { width:100%; height:90px; border-radius:8px; border:1px solid #e2e8f0; padding:10px; font-size:15px; resize:none; }
+    .row { display:flex; gap:8px; align-items:center; margin-top:10px; }
+    button { padding:10px 14px; border-radius:8px; border:none; background:#0b67ff; color:white; font-weight:600; }
+    .hint { font-size:13px; color:#6b7280; }
+    .result { margin-top:14px; background:#f1f5f9; padding:12px; border-radius:8px; }
+    .question { margin-bottom:12px; padding:10px; background:white; border-radius:8px; border:1px solid #eef2ff; }
+    .small { font-size:13px; color:#475569; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Practice Question Generator</h2>
+    <p class="hint">Write a short summary of what you learned (max 40 words). Example: "Photosynthesis process, light reactions, Calvin cycle, main enzymes and examples."</p>
+    <textarea id="inputText" maxlength="400" placeholder="Type your 40-word summary here..."></textarea>
+    <div class="row">
+      <div class="small" id="wordCount">Words: 0 / 40</div>
+      <div style="flex:1"></div>
+      <button id="generateBtn">OK — Create 3 Questions</button>
+    </div>
+
+    <div id="output" class="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    const API_BASE = "https://YOUR_BACKEND_URL_HERE"; // << Set this to your backend e.g., https://abcd.ngrok.io
+    const input = document.getElementById("inputText");
+    const btn = document.getElementById("generateBtn");
+    const output = document.getElementById("output");
+    const wordCount = document.getElementById("wordCount");
+
+    function countWords(s) {
+      if (!s.trim()) return 0;
+      return s.trim().split(/\s+/).length;
+    }
+
+    input.addEventListener("input", () => {
+      const wc = countWords(input.value);
+      wordCount.textContent = `Words: ${wc} / 40`;
+      if (wc > 40) {
+        wordCount.style.color = "red";
+        btn.disabled = true;
+      } else {
+        wordCount.style.color = "";
+        btn.disabled = false;
+      }
+    });
+
+    btn.addEventListener("click", async () => {
+      const text = input.value.trim();
+      const wc = countWords(text);
+      if (!text || wc === 0) {
+        alert("Please write a short summary (max 40 words).");
+        return;
+      }
+      if (wc > 40) {
+        alert("Please keep it within 40 words.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Generating...";
+      output.style.display = "block";
+      output.innerHTML = "<div class='small'>Generating questions — please wait...</div>";
+
+      try {
+        const resp = await fetch(API_BASE + "/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          output.innerHTML = `<div class="small">Error: ${data.error || JSON.stringify(data)}</div>`;
+        } else if (data.raw && data.warning) {
+          output.innerHTML = `<div class="small">Warning: could not parse JSON from model. Raw output returned below.</div><pre>${data.raw}</pre>`;
+        } else {
+          // Render analysis
+          const analysis = data.analysis || {};
+          const qs = data.questions || [];
+          let html = "<strong>Analysis:</strong><ul>";
+          html += `<li><strong>Missing:</strong> ${(analysis.missing||[]).join(", ") || "None"}</li>`;
+          html += `<li><strong>Unnecessary:</strong> ${(analysis.unnecessary||[]).join(", ") || "None"}</li>`;
+          html += `<li><strong>Core points:</strong> ${(analysis.core_points||[]).join(", ") || "None"}</li>`;
+          html += "</ul><hr>";
+          html += "<strong>Practice Questions (3)</strong>";
+          qs.forEach(q => {
+            html += `<div class="question"><div><strong>Q${q.q_no}.</strong> ${q.question}</div>`;
+            html += `<div class="small"><em>Hint:</em> ${q.hint}</div>`;
+            html += `<div><strong>Guidance:</strong><ul>`;
+            (q.guidance||[]).forEach(g => html += `<li>${g}</li>`);
+            html += `</ul></div><div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
+          });
+          // include meta similarity if present
+          if (data._meta) {
+            html += `<div class="small">Similarity scores to previous patterns: ${ (data._meta.similarity_scores || []).map(s=> (s*100).toFixed(0)+'%').join(", ") }</div>`;
+            if (data._meta.max_similarity < 0.2) {
+              html += `<div class="small" style="color:darkorange">Note: Generated items are not closely aligned to previous patterns (low similarity). Consider re-submitting with an explicit mention of pattern type (e.g., 'board exam style' or 'admission test style').</div>`;
+            }
+          }
+          output.innerHTML = html;
+        }
+      } catch (err) {
+        output.innerHTML = `<div class="small">Network or server error: ${err}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "OK — Create 3 Questions";
+      }
+    });
+  </script>
+</body>
+</html>
