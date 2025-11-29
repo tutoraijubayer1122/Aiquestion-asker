@@ -117,5 +117,27 @@
       }
     });
   </script>
+  <script>
+async function generateQuestions() {
+  const topic = document.getElementById('topic').value;
+  const response = await fetch('https://your-render-url/generate', {   // <-- Replace with your Render URL
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: topic })
+  });
+  const data = await response.json();
+  const list = document.getElementById('questions');
+  list.innerHTML = '';
+  if(data.questions){
+    data.questions.forEach(q => {
+      const li = document.createElement('li');
+      li.textContent = q.question + " (Hint: " + q.hint + ")";
+      list.appendChild(li);
+    });
+  } else if(data.error){
+    list.innerHTML = `<li>${data.error}</li>`;
+  }
+}
+</script>
 </body>
 </html>
