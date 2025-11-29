@@ -1,17 +1,12 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # Add this
-app = Flask(__name__)
-CORS(app)  # This allows frontend JS to call backend# app.py
-from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import json
 import difflib
 import re
 import requests
-
 app = Flask(__name__)
-
-# ----- Configuration -----
+CORS(app)  # <-- This allows all origins
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Set this in your environment (or Colab cell)
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"  # or the endpoint you use
 MODEL = "gpt-4o"  # replace with your available model; keep configurable
