@@ -1,4 +1,7 @@
-# app.py
+from flask import Flask, request, jsonify
+from flask_cors import CORS  # Add this
+app = Flask(__name__)
+CORS(app)  # This allows frontend JS to call backend# app.py
 from flask import Flask, request, jsonify
 import os
 import json
