@@ -1,100 +1,56 @@
-<!doctype html>
-<html lang="en">
+  <!doctype html>
+<html lang="bn">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Practice Question Generator</title>
-  <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:18px; background:#f8f9fb; color:#111; }
-    .card { max-width:760px; margin: 24px auto; background:white; border-radius:12px; padding:16px; box-shadow:0 6px 18px rgba(12,30,60,0.06); }
-    textarea { width:100%; height:90px; border-radius:8px; border:1px solid #e2e8f0; padding:10px; font-size:15px; resize:none; }
-    .row { display:flex; gap:8px; align-items:center; margin-top:10px; }
-    button { padding:10px 14px; border-radius:8px; border:none; background:#0b67ff; color:white; font-weight:600; cursor:pointer; }
-    .hint { font-size:13px; color:#6b7280; }
-    .result { margin-top:14px; background:#f1f5f9; padding:12px; border-radius:8px; }
-    .question { margin-bottom:12px; padding:10px; background:white; border-radius:8px; border:1px solid #eef2ff; }
-    .small { font-size:13px; color:#475569; }
-  </style>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<title>মোবাইল সহায়ক অ্যাসিস্ট্যান্ট</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:12px; max-width:720px; margin:auto;}
+  textarea{width:100%; height:120px; font-size:16px; padding:8px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+  button{width:48%; padding:12px; font-size:16px; margin-top:8px; border-radius:8px;}
+  .row{display:flex; gap:4%;}
+  .output{margin-top:12px; background:#fafafa; padding:10px; border-radius:8px; min-height:60px;}
+  .muted{color:#666; font-size:13px;}
+</style>
 </head>
 <body>
-  <div class="card">
-    <h2>Practice Question Generator</h2>
-    <p class="hint">Write a short summary of what you learned (max 40 words). Example: "Photosynthesis process, light reactions, Calvin cycle, main enzymes and examples."</p>
-    <textarea id="inputText" maxlength="400" placeholder="Type your 40-word summary here..."></textarea>
-    <div class="row">
-      <div class="small" id="wordCount">Words: 0 / 40</div>
-      <div style="flex:1"></div>
-      <button id="generateBtn">OK — Create 3 Questions</button>
-    </div>
+<h3>টপিক দিন — সংক্ষিপ্ত কিছু লিখুন (ব্যক্তিগত/আবেগি বিষয় লিখবেন না)</h3>
+<textarea id="userText" placeholder="আপনি যা পড়েছেন/জেনেছেন তার সংক্ষিপ্ত বর্ণনা লিখুন..."></textarea>
+<div class="row">
+  <button id="btnGenerate">প্রশ্ন তৈরি করুন</button>
+  <button id="btnShowPast">সম্ভাব্য প্রশ্ন / দেখে আসি</button>
+</div>
+<div class="output" id="output">আউটপুট এখানে দেখুন।</div>
+<div class="muted">প্রতি ব্যবহারকারীর জন্য প্রথমবার সম্পূর্ণ ফ্রি; 'সম্ভাব্য প্রশ্ন' ফিচারের জন্য ৫টি ফ্রি রিকোয়েস্ট।</div>
 
-    <div id="output" class="result" style="display:none;"></div>
-  </div>
 <script>
-  const API_BASE = "https://ai-question-backend.onrender.com"; // Base URL of your Render backend
-
-  const input = document.getElementById("inputText");
-  const btn = document.getElementById("generateBtn");
-  const output = document.getElementById("output");
-  const wordCount = document.getElementById("wordCount");
-
-  function countWords(s) {
-    if (!s.trim()) return 0;
-    return s.trim().split(/\s+/).length;
-  }
-
-  input.addEventListener("input", () => {
-    const wc = countWords(input.value);
-    wordCount.textContent = `Words: ${wc} / 40`;
-    wordCount.style.color = wc > 40 ? "red" : "";
-    btn.disabled = wc > 40;
+const out = el => document.getElementById('output').innerText = el;
+async function postJSON(path, data){
+  const res = await fetch(path, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
   });
-
-  btn.addEventListener("click", async () => {
-    const text = input.value.trim();
-    if (!text || countWords(text) === 0) return alert("Please write a short summary (max 40 words).");
-    if (countWords(text) > 40) return alert("Please keep it within 40 words.");
-
-    btn.disabled = true;
-    btn.textContent = "Generating...";
-    output.style.display = "block";
-    output.innerHTML = "<div class='small'>Generating questions — please wait...</div>";
-
-    try {
-      const resp = await fetch(`${API_BASE}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-      });
-
-      const data = await resp.json();
-
-      if (!resp.ok) {
-        output.innerHTML = `<div class="small">Error: ${data.error || JSON.stringify(data)}</div>`;
-      } else {
-        const analysis = data.analysis || {};
-        const qs = data.questions || [];
-        let html = "<strong>Analysis:</strong><ul>";
-        html += `<li><strong>Missing:</strong> ${(analysis.missing||[]).join(", ") || "None"}</li>`;
-        html += `<li><strong>Unnecessary:</strong> ${(analysis.unnecessary||[]).join(", ") || "None"}</li>`;
-        html += `<li><strong>Core points:</strong> ${(analysis.core_points||[]).join(", ") || "None"}</li>`;
-        html += "</ul><hr><strong>Practice Questions (3)</strong>";
-        qs.forEach(q => {
-          html += `<div class="question"><div><strong>Q${q.q_no}.</strong> ${q.question}</div>`;
-          html += `<div class="small"><em>Hint:</em> ${q.hint}</div>`;
-          html += `<div><strong>Guidance:</strong><ul>`;
-          (q.guidance||[]).forEach(g => html += `<li>${g}</li>`);
-          html += "</ul></div>";
-          html += `<div class="small"><em>Pointer:</em> ${q.source_pointer}</div></div>`;
-        });
-        output.innerHTML = html;
-      }
-    } catch (err) {
-      output.innerHTML = `<div class="small">Network or server error: ${err}</div>`;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "OK — Create 3 Questions";
-    }
-  });
+  return res.json();
+}
+document.getElementById('btnGenerate').onclick = async ()=>{
+  const text = document.getElementById('userText').value.trim();
+  if(!text){out('টপিক লিখুন।'); return;}
+  out('প্রসেস হচ্ছে…');
+  try{
+    const r = await postJSON('/generate', {text});
+    out(JSON.stringify(r, null, 2));
+  }catch(e){out('এরর: '+e.message)}
+};
+document.getElementById('btnShowPast').onclick = async ()=>{
+  const text = document.getElementById('userText').value.trim();
+  if(!text){out('টপিক লিখুন।'); return;}
+  out('প্রসেস হচ্ছে…');
+  try{
+    const r = await postJSON('/show_past', {text});
+    out(JSON.stringify(r, null, 2));
+  }catch(e){out('এরর: '+e.message)}
+};
 </script>
 </body>
-</html>
+</html>      
