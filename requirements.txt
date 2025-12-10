@@ -1,3 +1,6 @@
-flask
-flask-cors
+Flask>=2.0
 requests
+PyPDF2
+scikit-learn
+nltk(for tokenization) 
+python-dotenv
