@@ -1,56 +1,65 @@
-  <!doctype html>
+<!DOCTYPE html>
 <html lang="bn">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta charset="utf-8">
-<title>মোবাইল সহায়ক অ্যাসিস্ট্যান্ট</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; padding:12px; max-width:720px; margin:auto;}
-  textarea{width:100%; height:120px; font-size:16px; padding:8px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.08);}
-  button{width:48%; padding:12px; font-size:16px; margin-top:8px; border-radius:8px;}
-  .row{display:flex; gap:4%;}
-  .output{margin-top:12px; background:#fafafa; padding:10px; border-radius:8px; min-height:60px;}
-  .muted{color:#666; font-size:13px;}
-</style>
+    <meta charset="UTF-8">
+    <title>AI Question Generator</title>
 </head>
 <body>
-<h3>টপিক দিন — সংক্ষিপ্ত কিছু লিখুন (ব্যক্তিগত/আবেগি বিষয় লিখবেন না)</h3>
-<textarea id="userText" placeholder="আপনি যা পড়েছেন/জেনেছেন তার সংক্ষিপ্ত বর্ণনা লিখুন..."></textarea>
-<div class="row">
-  <button id="btnGenerate">প্রশ্ন তৈরি করুন</button>
-  <button id="btnShowPast">সম্ভাব্য প্রশ্ন / দেখে আসি</button>
-</div>
-<div class="output" id="output">আউটপুট এখানে দেখুন।</div>
-<div class="muted">প্রতি ব্যবহারকারীর জন্য প্রথমবার সম্পূর্ণ ফ্রি; 'সম্ভাব্য প্রশ্ন' ফিচারের জন্য ৫টি ফ্রি রিকোয়েস্ট।</div>
+    <h2>টপিক লিখুন</h2>
+
+    <input 
+        id="userText" 
+        type="text" 
+        placeholder="আপনি যা শিখেছেন তা সংক্ষেপে লিখুন..." 
+        style="width: 320px; padding: 8px; font-size: 16px;"
+    />
+
+    <br><br>
+
+    <button onclick="generateQuestion()" style="padding: 10px 15px;">প্রশ্ন তৈরি করুন</button>
+    <button onclick="showPast()" style="padding: 10px 15px;">সম্ভাব্য প্রশ্ন বা দেখে আসি</button>
+
+    <h3>ফলাফল:</h3>
+    <div id="output" style="white-space: pre-wrap; font-size: 16px;"></div>
 
 <script>
-const out = el => document.getElementById('output').innerText = el;
-async function postJSON(path, data){
-  const res = await fetch(path, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(data)
-  });
-  return res.json();
-}
-document.getElementById('btnGenerate').onclick = async ()=>{
-  const text = document.getElementById('userText').value.trim();
-  if(!text){out('টপিক লিখুন।'); return;}
-  out('প্রসেস হচ্ছে…');
-  try{
-    const r = await postJSON('/generate', {text});
-    out(JSON.stringify(r, null, 2));
-  }catch(e){out('এরর: '+e.message)}
-};
-document.getElementById('btnShowPast').onclick = async ()=>{
-  const text = document.getElementById('userText').value.trim();
-  if(!text){out('টপিক লিখুন।'); return;}
-  out('প্রসেস হচ্ছে…');
-  try{
-    const r = await postJSON('/show_past', {text});
-    out(JSON.stringify(r, null, 2));
-  }catch(e){out('এরর: '+e.message)}
-};
+    /* ------------------------------------------
+       🔥 Backend URL — Using your Render service
+    --------------------------------------------- */
+    const BACKEND_URL = "https://srv-d4lgq80gjchc73anevhg.onrender.com";
+
+    /* ------------------------------------------
+       🔥 Generate Question (Button 1)
+    --------------------------------------------- */
+    async function generateQuestion() {
+        const text = document.getElementById("userText").value;
+
+        const response = await fetch(`${BACKEND_URL}/generate-question`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+        document.getElementById("output").innerHTML = data.result;
+    }
+
+    /* ------------------------------------------
+       🔥 Show Past Questions (Button 2)
+    --------------------------------------------- */
+    async function showPast() {
+        const text = document.getElementById("userText").value;
+
+        const response = await fetch(`${BACKEND_URL}/show-past`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+
+        const data = await response.json();
+        document.getElementById("output").innerHTML = data.result;
+    }
 </script>
+
 </body>
-</html>      
+</html>  
